@@ -11,7 +11,13 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("M-Pesa STK Push API is running 🚀");
 });
-
+app.post("/api/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Payment API is ready 🚀",
+    data: req.body
+  });
+});
 app.listen(process.env.PORT || 3000, () => {
   console.log("Server is running");
 });
