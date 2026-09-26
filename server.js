@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -8,9 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Home / health check
+// Serve frontend
+app.use(express.static(path.join(__dirname)));
+
+// Home page
 app.get("/", (req, res) => {
-  res.send("M-Pesa STK Push API is running 🚀");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // Get M-Pesa access token
@@ -31,7 +35,7 @@ async function getAccessToken() {
   return response.data.access_token;
 }
 
-// STK Push endpoint
+// STK Push
 app.post("/api/stkpush", async (req, res) => {
   try {
     const { phone, amount, accountReference } = req.body;
@@ -43,9 +47,6 @@ app.post("/api/stkpush", async (req, res) => {
       });
     }
 
-    const accessToken = await getAccessToken();
-
-    // Convert phone number to 2547XXXXXXXX format
     let formattedPhone = phone.toString().trim();
 
     if (formattedPhone.startsWith("0")) {
@@ -55,6 +56,15 @@ app.post("/api/stkpush", async (req, res) => {
     if (formattedPhone.startsWith("+")) {
       formattedPhone = formattedPhone.substring(1);
     }
+
+    if (!/^2547\d{8}$/.test(formattedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Use a valid Kenyan phone number, e.g. 0712345678."
+      });
+    }
+
+    const accessToken = await getAccessToken();
 
     const timestamp = new Date()
       .toISOString()
@@ -78,7 +88,7 @@ app.post("/api/stkpush", async (req, res) => {
         PhoneNumber: formattedPhone,
         CallBackURL:
           "https://mpesa-stk-app-nk9l.onrender.com/api/callback",
-        AccountReference: accountReference || "Payment",
+        AccountReference: accountReference || "TEST",
         TransactionDesc: "STK Payment"
       },
       {
@@ -129,6 +139,7 @@ app.post("/api/test", (req, res) => {
   });
 });
 
+// Start server
 app.listen(process.env.PORT || 3000, () => {
   console.log("Server is running");
 });
