@@ -75,22 +75,37 @@ app.post("/api/stkpush", async (req, res) => {
       `${process.env.MPESA_SHORTCODE}${process.env.MPESA_PASSKEY}${timestamp}`
     ).toString("base64");
 
+    const requestBody = {
+      BusinessShortCode: process.env.MPESA_SHORTCODE,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerPayBillOnline",
+      Amount: Number(amount),
+      PartyA: formattedPhone,
+      PartyB: process.env.MPESA_SHORTCODE,
+      PhoneNumber: formattedPhone,
+      CallBackURL:
+        "https://mpesa-stk-app-nk9l.onrender.com/api/callback",
+      AccountReference: accountReference || "TEST",
+      TransactionDesc: "STK Payment"
+    };
+
+    console.log("STK REQUEST:");
+    console.log({
+      BusinessShortCode: requestBody.BusinessShortCode,
+      Timestamp: requestBody.Timestamp,
+      TransactionType: requestBody.TransactionType,
+      Amount: requestBody.Amount,
+      PartyA: requestBody.PartyA,
+      PartyB: requestBody.PartyB,
+      PhoneNumber: requestBody.PhoneNumber,
+      CallBackURL: requestBody.CallBackURL,
+      AccountReference: requestBody.AccountReference
+    });
+
     const stkResponse = await axios.post(
       "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-      {
-        BusinessShortCode: process.env.MPESA_SHORTCODE,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
-        Amount: Number(amount),
-        PartyA: formattedPhone,
-        PartyB: process.env.MPESA_SHORTCODE,
-        PhoneNumber: formattedPhone,
-        CallBackURL:
-          "https://mpesa-stk-app-nk9l.onrender.com/api/callback",
-        AccountReference: accountReference || "TEST",
-        TransactionDesc: "STK Payment"
-      },
+      requestBody,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -99,6 +114,9 @@ app.post("/api/stkpush", async (req, res) => {
       }
     );
 
+    console.log("STK SUCCESS:");
+    console.log(stkResponse.data);
+
     res.json({
       success: true,
       message: "STK Push sent successfully 🚀",
@@ -106,10 +124,17 @@ app.post("/api/stkpush", async (req, res) => {
     });
 
   } catch (error) {
+
+    console.error("STK PUSH ERROR:");
+
+    console.error("Status:", error.response?.status);
+
     console.error(
-      "STK Push Error:",
-      error.response?.data || error.message
+      "Safaricom Response:",
+      JSON.stringify(error.response?.data || {}, null, 2)
     );
+
+    console.error("Message:", error.message);
 
     res.status(500).json({
       success: false,
